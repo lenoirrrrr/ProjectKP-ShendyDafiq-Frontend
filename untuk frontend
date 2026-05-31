@@ -1,0 +1,180 @@
+# Backend API Documentation
+
+This documentation provides the specifications for the Express + Prisma backend API, designed for consumption by the frontend AI agent.
+
+## Base URL
+`http://localhost:3000/api` (Adjust based on deployment environment)
+
+## Standard Response Formats
+
+**Success Response (200, 201)**
+```json
+{
+  "success": true,
+  "message": "Operation successful",
+  "data": { ... }, // Can be an object or array
+  "meta": {        // Included for paginated responses (GET /all)
+    "total": 50,
+    "page": 1,
+    "limit": 10,
+    "totalPages": 5
+  }
+}
+```
+
+**Error Response (400, 401, 404, 500)**
+```json
+{
+  "success": false,
+  "message": "Error message description"
+}
+```
+
+---
+
+## 1. Categories (`/categories`)
+
+### `GET /categories`
+Get all categories (supports pagination).
+- **Query Params**: `page` (default: 1), `limit` (default: 10)
+- **Response Data**: Array of Category objects.
+
+### `GET /categories/:id`
+Get category by ID.
+- **Response Data**: Category object.
+
+### `POST /categories`
+Create a new category.
+- **Headers**: `Authorization: Bearer <token>`
+- **Body**:
+  ```json
+  {
+    "name": "Electronics",
+    "description": "Electronic gadgets and devices"
+  }
+  ```
+
+### `PUT /categories/:id`
+Update a category.
+- **Headers**: `Authorization: Bearer <token>`
+- **Body**: Same as POST.
+
+### `DELETE /categories/:id`
+Delete a category.
+- **Headers**: `Authorization: Bearer <token>`
+
+---
+
+## 2. Products (`/products`)
+
+### `GET /products`
+Get all products (supports pagination).
+- **Query Params**: `page` (default: 1), `limit` (default: 10)
+- **Response Data**: Array of Product objects (includes nested `category`).
+
+### `GET /products/:id`
+Get product by ID.
+- **Response Data**: Product object (includes nested `category`).
+
+### `POST /products`
+Create a new product.
+- **Headers**: `Authorization: Bearer <token>`
+- **Body**:
+  ```json
+  {
+    "name": "Laptop",
+    "description": "High performance laptop",
+    "price": 1200.50,
+    "stock": 50,
+    "categoryId": "uuid-of-category"
+  }
+  ```
+- **Validation**: `price` and `stock` must be non-negative.
+
+### `PUT /products/:id`
+Update a product.
+- **Headers**: `Authorization: Bearer <token>`
+- **Body**: Fields to update (same as POST).
+
+### `DELETE /products/:id`
+Delete a product.
+- **Headers**: `Authorization: Bearer <token>`
+
+---
+
+## 3. Orders (`/orders`)
+
+### `GET /orders`
+Get all orders (supports pagination).
+- **Query Params**: `page` (default: 1), `limit` (default: 10)
+- **Response Data**: Array of Order objects (includes nested `items`).
+
+### `GET /orders/:id`
+Get order by ID.
+- **Response Data**: Order object (includes nested `items`).
+
+### `POST /orders`
+Create a new order. *Note: Calculates `totalAmount` automatically and deducts product `stock`.*
+- **Headers**: `Authorization: Bearer <token>`
+- **Body**:
+  ```json
+  {
+    "items": [
+      {
+        "productId": "uuid-of-product-1",
+        "quantity": 2
+      },
+      {
+        "productId": "uuid-of-product-2",
+        "quantity": 1
+      }
+    ]
+  }
+  ```
+- **Validation**: Must contain at least one item. Products must exist and have sufficient stock.
+
+### `PUT /orders/:id`
+Update an order (usually just to update `status`).
+- **Headers**: `Authorization: Bearer <token>`
+- **Body**:
+  ```json
+  {
+    "status": "COMPLETED" // PENDING, COMPLETED, CANCELLED
+  }
+  ```
+
+### `DELETE /orders/:id`
+Delete an order.
+- **Headers**: `Authorization: Bearer <token>`
+
+---
+
+## 4. Admins (`/admins`)
+
+### `GET /admins`
+Get all admins (supports pagination).
+- **Headers**: `Authorization: Bearer <token>`
+- **Query Params**: `page` (default: 1), `limit` (default: 10)
+
+### `GET /admins/:id`
+Get admin by ID.
+- **Headers**: `Authorization: Bearer <token>`
+
+### `POST /admins`
+Create a new admin.
+- **Headers**: `Authorization: Bearer <token>`
+- **Body**:
+  ```json
+  {
+    "email": "admin@example.com",
+    "name": "Super Admin"
+  }
+  ```
+
+### `PUT /admins/:id`
+Update an admin.
+- **Headers**: `Authorization: Bearer <token>`
+
+### `DELETE /admins/:id`
+Delete an admin.
+- **Headers**: `Authorization: Bearer <token>`

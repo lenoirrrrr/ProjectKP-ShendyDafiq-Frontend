@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Inventory | Toko Sembako Ibu Diana</title>
+    <link rel="stylesheet" href="./css/admin.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <div class="admin-shell">
+        <aside class="sidebar" aria-label="Navigasi admin">
+            <a class="sidebar-brand" href="./index.html" aria-label="Admin Toko Sembako Ibu Diana">
+                <span class="brand-mark" aria-hidden="true">&#128722;</span>
+                <span>
+                    <strong>Admin Panel</strong>
+                    <small>Toko Sembako Ibu Diana</small>
+                </span>
+            </a>
+
+            <nav class="sidebar-nav" aria-label="Menu admin" data-js="sidebarNav">
+                <a class="sidebar-link is-active" href="#dashboard">
+                    <span aria-hidden="true">&#128202;</span>
+                    Dashboard
+                </a>
+                <a class="sidebar-link" href="#products">
+                    <span aria-hidden="true">&#128230;</span>
+                    Produk
+                </a>
+                <a class="sidebar-link" href="#orders">
+                    <span aria-hidden="true">&#128221;</span>
+                    Pesanan
+                </a>
+                <a class="sidebar-link" href="../index.html">
+                    <span aria-hidden="true">&#8592;</span>
+                    Customer Site
+                </a>
+                <button class="sidebar-link logout-btn" data-js="logoutBtn" style="width: 100%; background: none; border: none; text-align: left; cursor: pointer; margin-top: auto;">
+                    <span aria-hidden="true">&#128682;</span>
+                    Logout
+                </button>
+            </nav>
+        </aside>
+
+        <div class="admin-main">
+            <header class="topbar">
+                <div>
+                    <p class="eyebrow">Inventory Management</p>
+                    <h1>Dashboard Admin</h1>
+                </div>
+                <button class="btn btn-primary" type="button" data-js="openCreateProductBtn">
+                    <span aria-hidden="true">+</span>
+                    Tambah Produk
+                </button>
+            </header>
+
+            <main>
+                <section id="dashboard" class="dashboard-section" aria-labelledby="dashboardTitle">
+                    <div class="section-heading">
+                        <h2 id="dashboardTitle">Ringkasan Inventory</h2>
+                        <p>Pantau stok, harga, dan produk yang perlu segera diisi ulang.</p>
+                    </div>
+
+                    <div class="stats-grid" data-js="statsGrid" aria-live="polite"></div>
+                </section>
+
+                <section id="products" class="dashboard-section" aria-labelledby="productsTitle">
+                    <div class="section-toolbar">
+                        <div>
+                            <p class="eyebrow">Inventory Management</p>
+                            <h2 id="productsTitle">Daftar Produk</h2>
+                            <p>Kelola produk, stok, harga, dan deskripsi inventory.</p>
+                        </div>
+                        <div class="toolbar-actions">
+                            <div class="search-field">
+                                <label for="productSearch" class="sr-only">Cari produk</label>
+                                <input type="search" id="productSearch" name="search" data-js="searchInput" placeholder="Cari produk atau kategori..." autocomplete="off">
+                            </div>
+                            <button class="btn btn-secondary" type="button" data-js="resetSeedBtn">Reset Data Demo</button>
+                        </div>
+                    </div>
+
+                    <div class="table-card">
+                        <div class="table-responsive">
+                            <table class="product-table">
+                                <thead>
+                                    <tr>
+                                        <th>Produk</th>
+                                        <th>Kategori</th>
+                                        <th>Harga</th>
+                                        <th>Stok</th>
+                                        <th>Status</th>
+                                        <th>Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody data-js="productsTableBody"></tbody>
+                            </table>
+                        </div>
+                        <div class="empty-state" data-js="emptyState" hidden>
+                            <strong>Produk tidak ditemukan.</strong>
+                            <span>Tambahkan produk baru atau ubah kata kunci pencarian.</span>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="orders" class="dashboard-section" aria-labelledby="ordersTitle" hidden>
+                    <div class="section-toolbar">
+                        <div>
+                            <p class="eyebrow">Transaction Logs</p>
+                            <h2 id="ordersTitle">Daftar Pesanan</h2>
+                            <p>Kelola pesanan pelanggan dan rincian item produk.</p>
+                        </div>
+                    </div>
+
+                    <div class="table-card">
+                        <div class="table-responsive">
+                            <table class="product-table">
+                                <thead>
+                                    <tr>
+                                        <th>ID Pesanan</th>
+                                        <th>Nama Pelanggan</th>
+                                        <th>Waktu Transaksi</th>
+                                        <th>Total Transaksi</th>
+                                        <th>Status Pesanan</th>
+                                        <th>Tindakan</th>
+                                    </tr>
+                                </thead>
+                                <tbody data-js="ordersTableBody"></tbody>
+                            </table>
+                        </div>
+                        <div class="empty-state" data-js="emptyOrdersState" hidden>
+                            <strong>Belum ada pesanan.</strong>
+                            <span>Semua pesanan yang masuk akan muncul di sini.</span>
+                        </div>
+                    </div>
+                </section>
+            </main>
+        </div>
+    </div>
+
+    <div class="modal-overlay" data-js="modalOverlay" hidden></div>
+
+    <!-- Modal Rincian Pesanan (Order Items) -->
+    <section class="modal" data-js="orderModal" role="dialog" aria-modal="true" aria-labelledby="orderModalTitle" hidden>
+        <div class="modal-panel">
+            <header class="modal-header">
+                <div>
+                    <p class="eyebrow">Order Details</p>
+                    <h2 id="orderModalTitle">Rincian Item Pesanan</h2>
+                </div>
+                <button class="icon-btn" type="button" data-js="closeOrderModalBtn">&times;</button>
+            </header>
+            
+            <div class="table-responsive" style="padding: 1rem;">
+                <table class="product-table">
+                    <thead>
+                        <tr>
+                            <th>Produk</th>
+                            <th>Harga</th>
+                            <th>Qty</th>
+                            <th>Subtotal</th>
+                            <th style="width: 50px;">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody data-js="orderItemsTableBody"></tbody>
+                </table>
+            </div>
+
+            <footer class="modal-footer">
+                <button class="btn btn-secondary" type="button" data-js="closeOrderModalBtn2">Tutup</button>
+            </footer>
+        </div>
+    </section>
+
+    <div class="modal-overlay" data-js="modalOverlay" hidden></div>
+
+    <section class="login-screen" data-js="loginScreen" style="position: fixed; inset: 0; background: #f5f5f7; display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 20px;">
+        <div class="login-box" style="background: white; padding: 2.5rem; border-radius: 18px; box-shadow: 0 20px 40px rgba(0,0,0,0.05); width: 100%; max-width: 400px;">
+            <div style="text-align: center; margin-bottom: 2rem;">
+                <h2 style="margin: 0; color: #1d1d1f; font-family: 'SF Pro Display', sans-serif; font-size: 28px;">Admin Login</h2>
+                <p style="color: #86868b; margin-top: 0.5rem; font-size: 14px;">Toko Sembako Ibu Diana</p>
+            </div>
+            <form data-js="loginForm" style="display: flex; flex-direction: column; gap: 1.5rem;">
+                <label for="adminUsername" style="display: block; width: 100%;">
+                    <span style="display: block; font-size: 12px; font-weight: 600; margin-bottom: 8px; color: #1d1d1f;">Username</span>
+                    <input type="text" id="adminUsername" name="username" autocomplete="username" required style="width: 100%; padding: 12px 16px; border: 1px solid #d2d2d7; border-radius: 8px; font-size: 16px; outline: none; transition: border-color 0.2s;">
+                </label>
+                <label for="adminPassword" style="display: block; width: 100%;">
+                    <span style="display: block; font-size: 12px; font-weight: 600; margin-bottom: 8px; color: #1d1d1f;">Password</span>
+                    <input type="password" id="adminPassword" name="password" autocomplete="current-password" required style="width: 100%; padding: 12px 16px; border: 1px solid #d2d2d7; border-radius: 8px; font-size: 16px; outline: none; transition: border-color 0.2s;">
+                </label>
+                <div data-js="loginError" style="color: #d32f2f; font-size: 13px; width: 100%; text-align: center; display: none; background: #fff1f0; padding: 10px; border-radius: 8px;"></div>
+                <button type="submit" style="width: 100%; padding: 12px; background: #0066cc; color: white; border: none; border-radius: 999px; font-size: 16px; font-weight: 500; cursor: pointer; transition: background 0.2s;">Sign In</button>
+            </form>
+        </div>
+    </section>
+
+    <section class="modal" data-js="productModal" role="dialog" aria-modal="true" aria-labelledby="productModalTitle" aria-hidden="true" hidden>
+        <form class="modal-panel" data-js="productForm" novalidate>
+            <header class="modal-header">
+                <div>
+                    <p class="eyebrow">Product Form</p>
+                    <h2 id="productModalTitle" data-js="productModalTitle">Tambah Produk</h2>
+                </div>
+                <button class="icon-btn" type="button" data-js="closeModalBtn" aria-label="Tutup modal">&times;</button>
+            </header>
+
+            <div class="form-grid">
+                <input type="hidden" name="id" data-js="productIdInput">
+
+                <label class="field" for="productName">
+                    <span>Nama Produk</span>
+                    <input type="text" id="productName" name="name" required maxlength="160" placeholder="Contoh: Beras Premium 5kg" autocomplete="off">
+                    <small data-js-error="name"></small>
+                </label>
+
+                <label class="field" for="productCategory">
+                    <span>Kategori</span>
+                    <input type="text" id="productCategory" name="category" required maxlength="80" placeholder="Contoh: Kebutuhan pokok" autocomplete="organization-title">
+                    <small data-js-error="category"></small>
+                </label>
+
+                <label class="field" for="productPrice">
+                    <span>Harga</span>
+                    <input type="number" id="productPrice" name="price" required min="0" step="100" placeholder="75000">
+                    <small data-js-error="price"></small>
+                </label>
+
+                <label class="field" for="productStock">
+                    <span>Stok</span>
+                    <input type="number" id="productStock" name="stock" required min="0" step="1" placeholder="20">
+                    <small data-js-error="stock"></small>
+                </label>
+
+                <label class="field field-wide" for="imageInput">
+                    <span>Foto Produk</span>
+                    <input type="file" id="imageInput" name="image" accept="image/*" class="form-input">
+                    <small data-js-error="image"></small>
+                </label>
+
+                <label class="field field-wide" for="productDescription">
+                    <span>Deskripsi</span>
+                    <textarea id="productDescription" name="description" rows="4" maxlength="600" placeholder="Deskripsi singkat produk..." autocomplete="off"></textarea>
+                    <small data-js-error="description"></small>
+                </label>
+            </div>
+
+            <footer class="modal-footer">
+                <button class="btn btn-secondary" type="button" data-js="cancelModalBtn">Batal</button>
+                <button class="btn btn-primary" type="submit" data-js="submitProductBtn">Simpan Produk</button>
+            </footer>
+        </form>
+    </section>
+
+    <div class="toast" data-js="toast" role="status" aria-live="polite"></div>
+
+    <script type="module" src="./js/app.js"></script>
+</body>
+</html>
