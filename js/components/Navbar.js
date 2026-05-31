@@ -3,7 +3,7 @@ export function Navbar() {
     <nav class="navbar" aria-label="Navigasi utama">
         <div class="navbar-container">
             <a class="navbar-logo" href="#beranda" aria-label="Toko Sembako Ibu Diana">
-                <span class="logo-mark" aria-hidden="true">&#128722;</span>
+                <img src="images/Icon.png" alt="" class="logo-mark" aria-hidden="true">
                 <span>Toko Sembako Ibu Diana</span>
             </a>
 
@@ -20,7 +20,7 @@ export function Navbar() {
                 </li>
                 <li>
                     <button class="cart-btn" id="cartBtn" data-js="cartBtn" type="button" aria-label="Buka keranjang">
-                        <span aria-hidden="true">&#128722;</span>
+                        <img src="images/Keranjang.png" alt="" class="cart-icon">
                         <span>Keranjang</span>
                         <span class="cart-badge is-empty" id="cartBadge" data-js="cartBadge">0</span>
                     </button>

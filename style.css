@@ -69,86 +69,103 @@ button {
 .navbar {
     position: sticky;
     top: 0;
-    z-index: 50;
-    background: rgba(255, 255, 255, 0.96);
+    z-index: 100;
+    background: rgba(255, 255, 255, 0.9);
     border-bottom: 1px solid var(--color-line);
-    box-shadow: 0 1px 14px rgba(31, 41, 51, 0.06);
-    backdrop-filter: blur(16px);
+    backdrop-filter: blur(20px);
 }
 
 .navbar-container {
-    width: min(1120px, calc(100% - 32px));
-    min-height: 72px;
+    width: min(1200px, calc(100% - 48px));
+    min-height: 80px;
     margin-inline: auto;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 24px;
 }
 
 .navbar-logo {
     display: inline-flex;
     align-items: center;
-    gap: 10px;
+    gap: 14px;
     color: var(--color-primary-dark);
-    font-size: 1.08rem;
+    font-size: 1.35rem;
     font-weight: 800;
     text-decoration: none;
-    white-space: nowrap;
+    letter-spacing: -0.02em;
 }
 
 .logo-mark {
-    width: 38px;
-    height: 38px;
-    display: grid;
-    place-items: center;
-    color: #ffffff;
-    background: var(--color-primary);
-    border-radius: 8px;
-    box-shadow: var(--shadow-sm);
+    width: 52px;
+    height: 52px;
+    object-fit: contain;
+    border-radius: 12px;
+    background: #ffffff;
+    padding: 2px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .nav-menu {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 4px;
     list-style: none;
 }
 
 .nav-link {
     display: inline-flex;
-    min-height: 40px;
+    min-height: 44px;
     align-items: center;
-    border-radius: 8px;
-    color: var(--color-muted);
-    font-weight: 700;
-    padding: 0 12px;
+    border-radius: 10px;
+    color: var(--color-ink);
+    font-size: 0.95rem;
+    font-weight: 600;
+    padding: 0 16px;
     text-decoration: none;
-    transition: color var(--transition), background var(--transition);
+    transition: all var(--transition);
 }
 
 .nav-link:hover {
-    color: var(--color-primary-dark);
+    color: var(--color-primary);
     background: var(--color-soft);
 }
 
+.nav-link-btn {
+    border-radius: 10px !important;
+    transition: all var(--transition) !important;
+}
+
+.nav-link-btn:hover {
+    background: var(--color-soft) !important;
+    color: var(--color-primary) !important;
+}
+
 .cart-btn {
-    min-height: 42px;
+    margin-left: 8px;
+    min-height: 46px;
     display: inline-flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
     border: 0;
-    border-radius: 8px;
+    border-radius: 12px;
     color: #ffffff;
     background: var(--color-primary);
-    padding: 0 14px;
-    font-weight: 800;
-    transition: background var(--transition), transform var(--transition);
+    padding: 0 20px;
+    font-weight: 700;
+    box-shadow: 0 8px 20px rgba(36, 116, 75, 0.2);
+    transition: all var(--transition);
 }
 
 .cart-btn:hover {
     background: var(--color-primary-dark);
-    transform: translateY(-1px);
+    transform: translateY(-2px);
+    box-shadow: 0 12px 28px rgba(36, 116, 75, 0.3);
+}
+
+.cart-icon {
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
 }
 
 .cart-badge {
@@ -180,18 +197,16 @@ button {
     position: relative;
     overflow: hidden;
     color: #ffffff;
-    background:
-        linear-gradient(90deg, rgba(24, 86, 58, 0.92) 0%, rgba(36, 116, 75, 0.78) 50%, rgba(31, 41, 51, 0.2) 100%),
-        url("images/Telur.jpg") center / cover no-repeat;
+    background-color: var(--color-primary-dark);
+    transition: background-image 1s ease-in-out;
 }
 
-.hero::after {
+.hero::before {
     content: "";
     position: absolute;
-    inset: auto 0 0;
-    height: 120px;
-    background: linear-gradient(0deg, rgba(31, 41, 51, 0.26), transparent);
-    pointer-events: none;
+    inset: 0;
+    background: linear-gradient(90deg, rgba(24, 86, 58, 0.92) 0%, rgba(36, 116, 75, 0.78) 50%, rgba(31, 41, 51, 0.2) 100%);
+    z-index: 0;
 }
 
 .hero-content {

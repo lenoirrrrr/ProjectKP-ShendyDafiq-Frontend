@@ -15,6 +15,7 @@ import { Layout } from "./components/Layout.js";
 
 const domSelectors = Object.freeze({
     app: "#app",
+    hero: ".hero",
     productsGrid: '[data-js="productsGrid"]',
     cartBtn: '[data-js="cartBtn"]',
     cartBadge: '[data-js="cartBadge"]',
@@ -43,7 +44,37 @@ function renderLayout() {
     const app = document.querySelector(domSelectors.app);
     if (app) {
         app.innerHTML = Layout();
+        initHeroSlider();
     }
+}
+
+function initHeroSlider() {
+    const hero = document.querySelector(domSelectors.hero);
+    if (!hero) return;
+
+    const images = [
+        "images/background1.jpg",
+        "images/background2.jpg",
+        "images/background3.jpg"
+    ];
+    
+    let currentIndex = 0;
+
+    function updateBackground() {
+        const nextImage = images[currentIndex];
+        hero.style.backgroundImage = `url("${nextImage}")`;
+        hero.style.backgroundSize = "cover";
+        hero.style.backgroundPosition = "center";
+        hero.style.backgroundRepeat = "no-repeat";
+        
+        currentIndex = (currentIndex + 1) % images.length;
+    }
+
+    // Set initial background
+    updateBackground();
+    
+    // Change every 5 seconds
+    setInterval(updateBackground, 5000);
 }
 
 function cacheDomElements() {

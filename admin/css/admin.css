@@ -132,14 +132,11 @@ img {
 }
 
 .brand-mark {
-    width: 36px;
-    height: 36px;
-    display: grid;
-    place-items: center;
-    border-radius: 9px;
+    width: 44px;
+    height: 44px;
+    object-fit: contain;
+    border-radius: 10px;
     background: var(--color-ink);
-    color: #ffffff;
-    font-size: 18px;
 }
 
 .sidebar-brand strong {
