@@ -4,8 +4,8 @@
     const appConfig = Object.freeze({
         locale: "id-ID",
         api: {
-            enabled: false,
-            baseUrl: "/api",
+            enabled: true,
+            baseUrl: "https://projectkp-shendydafiq-backend-production.up.railway.app/api",
             timeoutMs: 8000,
         },
         cart: {
