@@ -3,7 +3,7 @@ export function Hero() {
     <section id="beranda" class="hero" aria-labelledby="heroTitle">
         <div class="container hero-content">
             <p class="hero-kicker">Belanja sembako harian</p>
-            <h1 id="heroTitle" class="hero-title">Toko Sembako Ibu Diana</h1>
+            <h1 id="heroTitle" class="hero-title">Toko Sembako Diana</h1>
             <p class="hero-subtitle">
                 Produk kebutuhan dapur lengkap, harga ramah, dan siap melayani pesanan take away maupun delivery.
             </p>

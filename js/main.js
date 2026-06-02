@@ -53,9 +53,9 @@ function initHeroSlider() {
     if (!hero) return;
 
     const images = [
-        "images/background1.jpg",
-        "images/background2.jpg",
-        "images/background3.jpg"
+        "images/background1.jpeg",
+        "images/background2.jpeg",
+        "images/background3.jpeg"
     ];
     
     let currentIndex = 0;

@@ -6,7 +6,7 @@ export function About() {
                 <p class="section-kicker">Tentang toko</p>
                 <h2 id="tentangTitle" class="section-title">Melayani Kebutuhan Harian Sejak 2015</h2>
                 <p class="section-subtitle">
-                    Toko Sembako Ibu Diana menyediakan produk pilihan dengan stok yang dijaga agar tetap layak, segar, dan mudah dibeli oleh pelanggan sekitar.
+                    Toko Sembako Diana menyediakan produk pilihan dengan stok yang dijaga agar tetap layak, segar, dan mudah dibeli oleh pelanggan sekitar.
                 </p>
             </div>
 

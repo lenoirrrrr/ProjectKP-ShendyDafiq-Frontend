@@ -2,9 +2,9 @@ export function Navbar() {
     return `
     <nav class="navbar" aria-label="Navigasi utama">
         <div class="navbar-container">
-            <a class="navbar-logo" href="#beranda" aria-label="Toko Sembako Ibu Diana">
+            <a class="navbar-logo" href="#beranda" aria-label="Toko Sembako Diana">
                 <img src="images/Icon.png" alt="" class="logo-mark" aria-hidden="true">
-                <span>Toko Sembako Ibu Diana</span>
+                <span>Toko Sembako Diana</span>
             </a>
 
             <ul class="nav-menu">

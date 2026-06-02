@@ -13,14 +13,14 @@ export function Contact() {
                     <span class="contact-icon" aria-hidden="true">&#128205;</span>
                     <div>
                         <h3>Lokasi Toko</h3>
-                        <p>Jl. Mawar No. 45, Kelurahan Sejahtera, Kecamatan Bangkit, Kota Medan, Sumatera Utara 20123</p>
+                        <p>Toko Diana Lapangan karah no 3 Surabaya Note: Dekat SDN Karah 1</p>
                     </div>
                 </article>
                 <article class="contact-item">
                     <span class="contact-icon" aria-hidden="true">&#128222;</span>
                     <div>
                         <h3>WhatsApp</h3>
-                        <p><a href="https://wa.me/6281234567890" class="contact-link">+62 812-3456-7890</a></p>
+                        <p><a href="https://wa.me/628990851133" class="contact-link">+62 812-3456-7890</a></p>
                     </div>
                 </article>
                 <article class="contact-item">
