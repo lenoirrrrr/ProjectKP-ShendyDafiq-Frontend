@@ -1,8 +1,24 @@
+function resolveEnvValue(key, fallback) {
+    const runtimeEnv = globalThis.__APP_ENV__ ?? {};
+    const metaTag = document.querySelector(`meta[name="${key}"]`);
+
+    if (typeof runtimeEnv[key] === "string" && runtimeEnv[key].trim().length > 0) {
+        return runtimeEnv[key].trim();
+    }
+
+    if (metaTag?.content?.trim()) {
+        return metaTag.content.trim();
+    }
+
+    return fallback;
+}
+
 export const appConfig = Object.freeze({
     locale: "id-ID",
     api: {
         enabled: true,
-        baseUrl: "https://projectkp-shendydafiq-backend-production.up.railway.app/api",
+        baseUrl: resolveEnvValue("APP_API_BASE_URL", "https://projectkp-shendydafiq-backend-production.up.railway.app/api"),
+        authBaseUrl: resolveEnvValue("APP_AUTH_BASE_URL", "http://localhost:3000/api/auth"),
         timeoutMs: 8000,
     },
     inventory: {
@@ -20,10 +36,10 @@ export const appConfig = Object.freeze({
         bucket: "ProductImage"
     },
     auth: {
-        username: "admin",
-        password: "password123",
-        storageKey: "toko-sembako:admin-auth"
-    }
+        storageKey: "toko-sembako:auth",
+        userKey: "toko-sembako:user",
+        adminSessionKey: "toko-sembako:admin-auth",
+    },
 });
 
 export const productSeedData = Object.freeze([]);

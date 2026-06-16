@@ -94,10 +94,13 @@ export function createOrderService({ cartService }) {
     }
 
     async function submitCheckout(formData) {
-        try {
-            const draftResult = createCheckoutDraft(formData);
-            if (!draftResult.ok) return draftResult;
+        const draftResult = createCheckoutDraft(formData);
 
+        if (!draftResult.ok) {
+            return draftResult;
+        }
+
+        try {
             const draft = draftResult.data;
 
             // Save customer name to localStorage for future filtering
@@ -120,14 +123,7 @@ export function createOrderService({ cartService }) {
                 address: draft.address
             };
 
-            // Assuming a regular user might need a token if the backend requires it,
-            // we'll pass no token for now since it's not provided in the frontend context,
-            // or we could use a dummy token if the backend strictly requires it.
-            // Documentation says: Headers: Authorization: Bearer <token>
-            // We will pass a dummy token to satisfy the backend requirement.
-            const response = await apiClient.post('/orders', orderPayload, {
-                token: 'dummy-token-for-user'
-            });
+            const response = await apiClient.post("/orders", orderPayload);
 
             return result.ok(response.data);
         } catch (error) {
@@ -151,9 +147,7 @@ export function createOrderService({ cartService }) {
 
     async function getOrders() {
         try {
-            const response = await apiClient.get('/orders', {
-                token: 'dummy-token-for-user'
-            });
+            const response = await apiClient.get("/orders");
 
             // Filter orders based on the customer name saved in localStorage
             const savedName = localStorage.getItem('kp_customer_name');

@@ -1,4 +1,5 @@
 import { appConfig } from "../config.js";
+import { authService } from "./authService.js";
 import { fail, ok } from "../utils/result.js";
 import { cloneJson, sanitizeInput } from "../utils/sanitize.js";
 import { createAppError, errorCategory, handleError, normalizeError } from "../utils/error.js";
@@ -16,15 +17,23 @@ async function fetchJsonWithTimeout(url, options = {}) {
     const controller = new AbortController();
     const timeoutId = window.setTimeout(() => controller.abort(), appConfig.api.timeoutMs);
 
+        const token = authService.getToken() || "";
+
     try {
         const response = await fetch(url, {
             ...options,
             signal: controller.signal,
             headers: {
                 "Content-Type": "application/json",
+                ...(token ? { "Authorization": `Bearer ${token}` } : {}),
                 ...(options.headers ?? {}),
             },
         });
+
+        if (response.status === 401 || response.status === 403) {
+            authService.handleUnauthorized(response.status);
+            return null;
+        }
 
         if (!response.ok) {
             throw createAppError({

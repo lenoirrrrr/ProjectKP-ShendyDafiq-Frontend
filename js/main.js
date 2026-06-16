@@ -11,6 +11,7 @@ import { createProductRenderer, createCartRenderer, createUserOrderRenderer } fr
 import { createModalController } from "./ui/modalController.js";
 import { createNotificationService } from "./utils/notification.js";
 import { createErrorBoundary, handleError, errorCategory } from "./utils/errorHandler.js";
+import { createAuthService } from "./services/authService.js";
 import { Layout } from "./components/Layout.js";
 
 const domSelectors = Object.freeze({
@@ -38,12 +39,23 @@ const domSelectors = Object.freeze({
     userOrderList: '[data-js="userOrderList"]',
     closeUserOrderBtn: '[data-js="closeUserOrderBtn"]',
     closeUserOrderBtn2: '[data-js="closeUserOrderBtn2"]',
+    authModal: '[data-js="authModal"]',
+    authModalTitle: '[data-js="authModalTitle"]',
+    loginTab: '[data-js="loginTab"]',
+    registerTab: '[data-js="registerTab"]',
+    loginForm: '[data-js="loginForm"]',
+    registerForm: '[data-js="registerForm"]',
+    openAuthBtn: '[data-js="openAuthBtn"]',
+    closeAuthBtn: '[data-js="closeAuthBtn"]',
+    logoutBtn: '[data-js="logoutBtn"]',
+    switchToRegister: '[data-js="switchToRegister"]',
+    switchToLogin: '[data-js="switchToLogin"]',
 });
 
-function renderLayout() {
+function renderLayout(user = null) {
     const app = document.querySelector(domSelectors.app);
     if (app) {
-        app.innerHTML = Layout();
+        app.innerHTML = Layout(user);
         initHeroSlider();
     }
 }
@@ -99,6 +111,17 @@ function cacheDomElements() {
             userOrderList: getRequiredElement(domSelectors.userOrderList),
             closeUserOrderBtn: getRequiredElement(domSelectors.closeUserOrderBtn),
             closeUserOrderBtn2: getRequiredElement(domSelectors.closeUserOrderBtn2),
+            authModal: document.querySelector(domSelectors.authModal),
+            authModalTitle: document.querySelector(domSelectors.authModalTitle),
+            loginTab: document.querySelector(domSelectors.loginTab),
+            registerTab: document.querySelector(domSelectors.registerTab),
+            loginForm: document.querySelector(domSelectors.loginForm),
+            registerForm: document.querySelector(domSelectors.registerForm),
+            openAuthBtn: document.querySelector(domSelectors.openAuthBtn),
+            closeAuthBtn: document.querySelector(domSelectors.closeAuthBtn),
+            logoutBtn: document.querySelector(domSelectors.logoutBtn),
+            switchToRegister: document.querySelector(domSelectors.switchToRegister),
+            switchToLogin: document.querySelector(domSelectors.switchToLogin),
             pickupInputs: document.querySelectorAll(domSelectors.pickupInput),
             paymentInputs: document.querySelectorAll(domSelectors.paymentInput),
             anchorLinks: document.querySelectorAll(domSelectors.anchorLink),
@@ -124,7 +147,119 @@ function bindAppEvents({
     productService,
     productRenderer,
     userOrderRenderer,
+    authService,
 }) {
+    const openAuthModal = (defaultTab = "login") => {
+        if (!elements.authModal || !elements.modalOverlay) {
+            return;
+        }
+
+        switchTab(defaultTab);
+        elements.authModal.hidden = false;
+        elements.modalOverlay.hidden = false;
+        elements.authModal.classList.add("active");
+        elements.modalOverlay.classList.add("active");
+        elements.authModal.setAttribute("aria-hidden", "false");
+        document.body.classList.add("modal-open");
+    };
+
+    const closeAuthModal = () => {
+        if (!elements.authModal || !elements.modalOverlay) {
+            return;
+        }
+
+        if (!authService.isAuthenticated()) {
+            return;
+        }
+
+        elements.authModal.classList.remove("active");
+        elements.modalOverlay.classList.remove("active");
+        elements.authModal.hidden = true;
+        elements.modalOverlay.hidden = true;
+        elements.authModal.setAttribute("aria-hidden", "true");
+        document.body.classList.remove("modal-open");
+    };
+
+    // Auth Events
+    if (elements.openAuthBtn) {
+        elements.openAuthBtn.addEventListener("click", () => {
+            openAuthModal("login");
+        });
+    }
+
+    if (elements.logoutBtn) {
+        elements.logoutBtn.addEventListener("click", () => {
+            authService.logout();
+            window.location.href = "./index.html";
+        });
+    }
+
+    if (elements.closeAuthBtn) {
+        elements.closeAuthBtn.addEventListener("click", closeAuthModal);
+    }
+
+    const switchTab = (tab) => {
+        if (tab === 'login') {
+            elements.loginTab.classList.add('active');
+            elements.registerTab.classList.remove('active');
+            elements.loginForm.hidden = false;
+            elements.registerForm.hidden = true;
+            if (elements.authModalTitle) {
+                elements.authModalTitle.textContent = 'Login';
+            }
+        } else {
+            elements.loginTab.classList.remove('active');
+            elements.registerTab.classList.add('active');
+            elements.loginForm.hidden = true;
+            elements.registerForm.hidden = false;
+            if (elements.authModalTitle) {
+                elements.authModalTitle.textContent = 'Register';
+            }
+        }
+    };
+
+    if (elements.loginTab) elements.loginTab.addEventListener('click', () => switchTab('login'));
+    if (elements.registerTab) elements.registerTab.addEventListener('click', () => switchTab('register'));
+    if (elements.switchToRegister) elements.switchToRegister.addEventListener('click', () => switchTab('register'));
+    if (elements.switchToLogin) elements.switchToLogin.addEventListener('click', () => switchTab('login'));
+
+    if (elements.loginForm) {
+        elements.loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(elements.loginForm);
+            const email = formData.get('email');
+            const password = formData.get('password');
+
+            void errorBoundary.run("auth:login", async () => {
+                const result = await authService.login(email, password);
+                if (result.success) {
+                    notificationService.success(`Selamat datang kembali, ${result.user.name}!`);
+                    closeAuthModal();
+                    setTimeout(() => window.location.reload(), 400);
+                }
+            });
+        });
+    }
+
+    if (elements.registerForm) {
+        elements.registerForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(elements.registerForm);
+            const name = formData.get('name');
+            const email = formData.get('email');
+            const password = formData.get('password');
+
+            void errorBoundary.run("auth:register", async () => {
+                const result = await authService.register(name, email, password);
+                if (result.success) {
+                    notificationService.success(`Registrasi berhasil. Selamat datang, ${result.user.name}!`);
+                    closeAuthModal();
+                    setTimeout(() => window.location.reload(), 400);
+                }
+            });
+        });
+    }
+
     elements.productsGrid.addEventListener("click", (event) => {
         const target = getEventTargetElement(event);
         const button = target?.closest('[data-action="add-to-cart"]');
@@ -150,6 +285,12 @@ function bindAppEvents({
     });
 
     elements.cartBtn.addEventListener("click", () => {
+        if (!authService.isAuthenticated()) {
+            notificationService.warning("Silakan login terlebih dahulu.");
+            openAuthModal("login");
+            return;
+        }
+
         if (cartService.getItemCount() === 0) {
             notificationService.warning("Keranjang masih kosong.");
             cartRenderer.renderCartItems([]);
@@ -164,9 +305,22 @@ function bindAppEvents({
     elements.cancelCheckoutBtn.addEventListener("click", modalController.close);
     elements.closeUserOrderBtn.addEventListener("click", modalController.close);
     elements.closeUserOrderBtn2.addEventListener("click", modalController.close);
-    elements.modalOverlay.addEventListener("click", modalController.close);
+    elements.modalOverlay.addEventListener("click", () => {
+        if (elements.authModal?.classList.contains("active")) {
+            closeAuthModal();
+            return;
+        }
+
+        modalController.close();
+    });
 
     elements.myOrdersBtn.addEventListener("click", () => {
+        if (!authService.isAuthenticated()) {
+            notificationService.warning("Silakan login terlebih dahulu.");
+            openAuthModal("login");
+            return;
+        }
+
         void errorBoundary.run("orders:load", async () => {
             modalController.openUserOrders();
             
@@ -277,10 +431,15 @@ function bindAppEvents({
             modalController.close();
         }
     });
+
+    return { openAuthModal, closeAuthModal };
 }
 
 async function initializeApp() {
-    renderLayout(); // Render modular layout before caching elements
+    const authService = createAuthService();
+    const user = authService.getUser();
+    
+    renderLayout(user); // Render modular layout before caching elements
     
     const elements = cacheDomElements();
     const notificationService = createNotificationService(elements.toast);
@@ -322,7 +481,7 @@ async function initializeApp() {
         }
     });
 
-    bindAppEvents({
+    const { openAuthModal } = bindAppEvents({
         elements,
         cartService,
         orderService,
@@ -334,7 +493,24 @@ async function initializeApp() {
         productService,
         productRenderer,
         userOrderRenderer,
+        authService
     });
+
+    if (!authService.isAuthenticated()) {
+        openAuthModal("login");
+    }
+
+    window.addEventListener("auth:expired", () => {
+        notificationService.warning("Sesi login berakhir. Silakan masuk kembali.");
+        openAuthModal("login");
+    });
+
+    const currentUrl = new URL(window.location.href);
+    if (currentUrl.searchParams.get("unauthorized") === "1") {
+        notificationService.warning("Akun Anda tidak memiliki akses ke halaman admin.");
+        currentUrl.searchParams.delete("unauthorized");
+        window.history.replaceState({}, "", currentUrl);
+    }
 
     // Real-Time Cross-Tab Sync
     window.addEventListener("storage", (event) => {

@@ -880,6 +880,59 @@ button {
     outline: 3px solid rgba(36, 116, 75, 0.12);
 }
 
+/* Auth Modal Styles */
+.auth-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+}
+
+.auth-tab {
+    flex: 1;
+    padding: 10px;
+    text-align: center;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    font-weight: 700;
+    transition: all var(--transition);
+}
+
+.auth-tab.active {
+    color: var(--color-primary);
+    border-bottom-color: var(--color-primary);
+}
+
+.auth-form-group {
+    margin-bottom: 16px;
+}
+
+.auth-form-group label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 600;
+    color: var(--color-ink);
+}
+
+.auth-form-group input {
+    width: 100%;
+    min-height: 48px;
+    padding: 0 14px;
+    border: 1px solid var(--color-line);
+    border-radius: 8px;
+    outline: none;
+}
+
+.auth-form-group input:focus {
+    border-color: var(--color-primary);
+}
+
+.auth-toggle-link {
+    color: var(--color-primary);
+    cursor: pointer;
+    font-weight: 700;
+    text-decoration: underline;
+}
+
 .toast {
     position: fixed;
     right: 18px;

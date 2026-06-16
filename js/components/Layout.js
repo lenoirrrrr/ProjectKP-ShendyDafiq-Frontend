@@ -6,11 +6,12 @@ import { Contact } from "./Contact.js";
 import { Footer } from "./Footer.js";
 import { CheckoutModal } from "./CheckoutModal.js";
 import { UserOrderModal } from "./UserOrderModal.js";
+import { AuthModal } from "./AuthModal.js";
 import { Toast } from "./Toast.js";
 
-export function Layout() {
+export function Layout(user = null) {
     return `
-        ${Navbar()}
+        ${Navbar(user)}
         <main>
             ${Hero()}
             ${ProductSection()}
@@ -20,6 +21,7 @@ export function Layout() {
         ${Footer()}
         ${CheckoutModal()}
         ${UserOrderModal()}
+        ${AuthModal()}
         ${Toast()}
     `;
 }

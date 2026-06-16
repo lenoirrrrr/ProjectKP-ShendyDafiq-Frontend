@@ -150,7 +150,17 @@ async function loadOrders(elements, store) {
         console.error("Gagal memuat pesanan:", err);
         // Fallback ke backend local
         try {
-            const response = await fetch(`${appConfig.api.baseUrl}/orders`);
+            const response = await fetch(`${appConfig.api.baseUrl}/orders`, {
+                headers: authService.getToken()
+                    ? { Authorization: `Bearer ${authService.getToken()}` }
+                    : {},
+            });
+
+            if (response.status === 401 || response.status === 403) {
+                authService.handleUnauthorized(response.status);
+                return;
+            }
+
             const result = await response.json();
             if (result.success) {
                 renderOrdersTable(elements.ordersTableBody, elements.emptyOrdersState, result.data);
@@ -171,7 +181,7 @@ function createRepositories() {
 
     const apiRepository = createApiProductRepository({
         baseUrl: appConfig.api.baseUrl,
-        getAuthToken: () => null,
+        getAuthToken: () => authService.getToken(),
     });
 
     return createFallbackProductRepository(apiRepository, localRepository);
@@ -268,7 +278,7 @@ function bindEvents({ elements, store, modalController, notificationService }) {
 
     const orderItemService = createOrderItemService({
         baseUrl: appConfig.api.baseUrl,
-        getAuthToken: () => null // Add logic if token is needed
+        getAuthToken: () => authService.getToken()
     });
 
     elements.orderItemsTableBody.addEventListener("click", async (e) => {
@@ -329,7 +339,17 @@ function bindEvents({ elements, store, modalController, notificationService }) {
             console.error("Gagal memuat detail pesanan dari Supabase:", err);
             // Fallback to backend
             try {
-                const response = await fetch(`${appConfig.api.baseUrl}/orders/${orderId}`);
+                const response = await fetch(`${appConfig.api.baseUrl}/orders/${orderId}`, {
+                    headers: authService.getToken()
+                        ? { Authorization: `Bearer ${authService.getToken()}` }
+                        : {},
+                });
+
+                if (response.status === 401 || response.status === 403) {
+                    authService.handleUnauthorized(response.status);
+                    return;
+                }
+
                 const result = await response.json();
                 if (result.success) {
                     renderOrderItems(elements.orderItemsTableBody, result.data.items || []);
@@ -352,9 +372,17 @@ function bindEvents({ elements, store, modalController, notificationService }) {
         try {
             const response = await fetch(`${appConfig.api.baseUrl}/orders/${orderId}`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(authService.getToken() ? { Authorization: `Bearer ${authService.getToken()}` } : {}),
+                },
                 body: JSON.stringify({ status: newStatus })
             });
+
+            if (response.status === 401 || response.status === 403) {
+                authService.handleUnauthorized(response.status);
+                return;
+            }
 
             const result = await response.json();
             if (result.success) {
@@ -372,7 +400,6 @@ function bindEvents({ elements, store, modalController, notificationService }) {
 
     elements.logoutBtn.addEventListener("click", () => {
         authService.logout();
-        window.location.reload();
     });
 
     elements.productForm.addEventListener("submit", (event) => {
@@ -430,26 +457,27 @@ function bindEvents({ elements, store, modalController, notificationService }) {
 
 async function initializeAdminApp() {
     const elements = cacheDomElements();
+    const user = authService.getUser();
+
+    if (authService.isAuthenticated() && user?.role !== "ADMIN") {
+        window.location.href = "../index.html?unauthorized=1";
+        return;
+    }
 
     // LOGIN SCREEN SUBMIT EVENT
     elements.loginForm.onsubmit = async (e) => {
         e.preventDefault();
         e.stopPropagation();
         
-        const usernameInput = elements.loginForm.querySelector('input[name="username"]');
+        const emailInput = elements.loginForm.querySelector('input[name="username"]');
         const passwordInput = elements.loginForm.querySelector('input[name="password"]');
         
-        const result = authService.login(usernameInput.value, passwordInput.value);
+        const result = await authService.login(emailInput.value, passwordInput.value);
 
         if (result.success) {
             elements.loginScreen.style.setProperty("display", "none", "important");
             elements.loginError.style.display = "none";
-            
-            // Re-fetch data setelah login berhasil
-            const refreshResult = await store.refresh();
-            if (!refreshResult.ok) {
-                handleError(refreshResult.error, {}, { notify: notificationService.show });
-            }
+            window.location.reload();
         } else {
             elements.loginError.textContent = result.message;
             elements.loginError.style.setProperty("display", "block", "important");
@@ -505,7 +533,6 @@ async function initializeAdminApp() {
     // Check Authentication
     if (authService.isAuthenticated()) {
         elements.loginScreen.style.setProperty("display", "none", "important");
-        // Melakukan data refresh hanya jika login valid
         const refreshResult = await store.refresh();
         if (!refreshResult.ok) {
             handleError(refreshResult.error, {}, { notify: notificationService.show });

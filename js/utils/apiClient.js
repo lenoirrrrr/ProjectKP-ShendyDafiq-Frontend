@@ -1,6 +1,27 @@
 import { appConfig } from "../config/config.js";
 import { AppError, errorCategory } from "./errorHandler.js";
 
+function getStoredToken() {
+    return localStorage.getItem(appConfig.auth.storageKey);
+}
+
+function clearAuthSession() {
+    localStorage.removeItem(appConfig.auth.storageKey);
+    localStorage.removeItem(appConfig.auth.userKey);
+}
+
+function handleAuthorizationFailure(status) {
+    clearAuthSession();
+    window.dispatchEvent(
+        new CustomEvent("auth:expired", {
+            detail: {
+                status,
+                reason: status === 403 ? "FORBIDDEN" : "UNAUTHORIZED",
+            },
+        })
+    );
+}
+
 async function fetchWithTimeout(resource, options = {}) {
     const { timeout = appConfig.api.timeoutMs } = options;
     const controller = new AbortController();
@@ -17,7 +38,14 @@ async function fetchWithTimeout(resource, options = {}) {
 
 export const apiClient = {
     async request(endpoint, options = {}) {
-        if (!appConfig.api.enabled) {
+        const {
+            authRequired = true,
+            baseUrl = appConfig.api.baseUrl,
+            skipAuthFailureRedirect = false,
+            ...requestOptions
+        } = options;
+
+        if (!appConfig.api.enabled && baseUrl === appConfig.api.baseUrl) {
             throw new AppError({
                 category: errorCategory.api,
                 code: "API_DISABLED",
@@ -25,27 +53,43 @@ export const apiClient = {
             });
         }
 
-        const url = `${appConfig.api.baseUrl}${endpoint}`;
+        const url = `${baseUrl}${endpoint}`;
         
         const defaultHeaders = {
             "Content-Type": "application/json",
             "Accept": "application/json"
         };
 
-        if (options.token) {
-            defaultHeaders["Authorization"] = `Bearer ${options.token}`;
+        const token = requestOptions.token || getStoredToken();
+        if (authRequired && token) {
+            defaultHeaders["Authorization"] = `Bearer ${token}`;
         }
 
         const config = {
-            ...options,
+            ...requestOptions,
             headers: {
                 ...defaultHeaders,
-                ...options.headers
+                ...requestOptions.headers
             }
         };
 
         try {
             const response = await fetchWithTimeout(url, config);
+
+            if ((response.status === 401 || response.status === 403) && authRequired) {
+                handleAuthorizationFailure(response.status);
+                if (!skipAuthFailureRedirect) {
+                    throw new AppError({
+                        category: errorCategory.api,
+                        code: response.status === 403 ? "AUTH_FORBIDDEN" : "AUTH_EXPIRED",
+                        message: response.status === 403
+                            ? "Anda tidak memiliki akses ke resource ini."
+                            : "Sesi login Anda sudah berakhir. Silakan login kembali.",
+                        details: { status: response.status, endpoint }
+                    });
+                }
+            }
+
             let responseData;
             
             try {
@@ -61,7 +105,7 @@ export const apiClient = {
                 });
             }
 
-            if (!response.ok || !responseData.success) {
+            if (!response.ok || (responseData.success !== undefined && !responseData.success)) {
                 throw new AppError({
                     category: errorCategory.api,
                     code: `API_ERROR_${response.status}`,
@@ -71,7 +115,7 @@ export const apiClient = {
             }
 
             return {
-                data: responseData.data,
+                data: responseData.data || responseData, // Handle both wrapped and unwrapped data
                 meta: responseData.meta
             };
         } catch (error) {
