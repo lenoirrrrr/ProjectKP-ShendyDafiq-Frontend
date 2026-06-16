@@ -27,12 +27,24 @@ const domSelectors = Object.freeze({
     submitOrderBtn: '[data-js="submitOrderBtn"]',
     cartItems: '[data-js="cartItems"]',
     totalPrice: '[data-js="totalPrice"]',
+    cartSubtotal: '[data-js="cartSubtotal"]',
+    shippingRow: '[data-js="shippingRow"]',
+    shippingFee: '[data-js="shippingFee"]',
+    minDeliveryNotice: '[data-js="minDeliveryNotice"]',
     deliveryAddressSection: '[data-js="deliveryAddressSection"]',
+    deliveryKecamatan: '[data-js="deliveryKecamatan"]',
+    deliveryDusun: '[data-js="deliveryDusun"]',
     deliveryAddress: '[data-js="deliveryAddress"]',
     customerName: '[data-js="customerName"]',
     toast: '[data-js="toast"]',
     pickupInput: 'input[name="pengambilan"]',
     paymentInput: 'input[name="pembayaran"]',
+    paymentInstructions: '[data-js="paymentInstructions"]',
+    qrisInstruction: '[data-js="qrisInstruction"]',
+    transferInstruction: '[data-js="transferInstruction"]',
+    paymentProof: '[data-js="paymentProof"]',
+    paymentProofPreview: '[data-js="paymentProofPreview"]',
+    paymentProofPreviewContainer: '[data-js="paymentProofPreviewContainer"]',
     anchorLink: 'a[href^="#"]',
     myOrdersBtn: '[data-js="myOrdersBtn"]',
     userOrderModal: '[data-js="userOrderModal"]',
@@ -102,7 +114,13 @@ function cacheDomElements() {
             submitOrderBtn: getRequiredElement(domSelectors.submitOrderBtn),
             cartItems: getRequiredElement(domSelectors.cartItems),
             totalPrice: getRequiredElement(domSelectors.totalPrice),
+            cartSubtotal: getRequiredElement(domSelectors.cartSubtotal),
+            shippingRow: getRequiredElement(domSelectors.shippingRow),
+            shippingFee: getRequiredElement(domSelectors.shippingFee),
+            minDeliveryNotice: getRequiredElement(domSelectors.minDeliveryNotice),
             deliveryAddressSection: getRequiredElement(domSelectors.deliveryAddressSection),
+            deliveryKecamatan: getRequiredElement(domSelectors.deliveryKecamatan),
+            deliveryDusun: getRequiredElement(domSelectors.deliveryDusun),
             deliveryAddress: getRequiredElement(domSelectors.deliveryAddress),
             customerName: getRequiredElement(domSelectors.customerName),
             toast: getRequiredElement(domSelectors.toast),
@@ -124,6 +142,12 @@ function cacheDomElements() {
             switchToLogin: document.querySelector(domSelectors.switchToLogin),
             pickupInputs: document.querySelectorAll(domSelectors.pickupInput),
             paymentInputs: document.querySelectorAll(domSelectors.paymentInput),
+            paymentInstructions: getRequiredElement(domSelectors.paymentInstructions),
+            qrisInstruction: getRequiredElement(domSelectors.qrisInstruction),
+            transferInstruction: getRequiredElement(domSelectors.transferInstruction),
+            paymentProof: getRequiredElement(domSelectors.paymentProof),
+            paymentProofPreview: getRequiredElement(domSelectors.paymentProofPreview),
+            paymentProofPreviewContainer: getRequiredElement(domSelectors.paymentProofPreviewContainer),
             anchorLinks: document.querySelectorAll(domSelectors.anchorLink),
         };
     } catch (error) {
@@ -373,7 +397,8 @@ function bindAppEvents({
 
     elements.submitOrderBtn.addEventListener("click", () => {
         void errorBoundary.run("order:submit", async () => {
-            const orderResult = await orderService.submitCheckout(modalController.getCheckoutFormData());
+            const formData = modalController.getCheckoutFormData();
+            const orderResult = await orderService.submitCheckout(formData);
 
             if (!orderResult.ok) {
                 handleError(orderResult.error, {}, { notify: notificationService.show });
@@ -383,6 +408,41 @@ function bindAppEvents({
                 }
 
                 return;
+            }
+
+            // Save payment proof to localStorage under the generated order ID
+            const orderId = orderResult.data?.id || `local_${Date.now()}`;
+
+            // Save full order metadata for admin panel (backend may not persist these fields)
+            try {
+                const orderMeta = {
+                    customerName: formData.customerName,
+                    pickupMethod: formData.pickupMethod,
+                    paymentMethod: formData.paymentMethod,
+                    kecamatan: formData.kecamatan,
+                    dusun: formData.dusun,
+                    address: orderResult.data?.address || (
+                        formData.pickupMethod === "delivery"
+                            ? `Kecamatan ${formData.kecamatan}, Dusun ${formData.dusun}, ${formData.address}`
+                            : ""
+                    ),
+                    totalAmount: orderResult.data?.totalAmount || 0,
+                    status: "PENDING",
+                };
+                localStorage.setItem(`order_meta_${orderId}`, JSON.stringify(orderMeta));
+                console.log(`Order metadata saved in localStorage for order: ${orderId}`, orderMeta);
+            } catch (e) {
+                console.error("Gagal menyimpan metadata pesanan ke localStorage:", e);
+            }
+
+            // Save payment proof image
+            if (elements.paymentProofPreview && elements.paymentProofPreview.src && elements.paymentProofPreview.src.startsWith("data:")) {
+                try {
+                    localStorage.setItem(`payment_proof_${orderId}`, elements.paymentProofPreview.src);
+                    console.log(`Payment proof saved in localStorage for order: ${orderId}`);
+                } catch (e) {
+                    console.error("Gagal menyimpan bukti pembayaran ke localStorage:", e);
+                }
             }
 
             // Note: Deduct stock is handled automatically by the backend API on POST /orders.
@@ -409,8 +469,41 @@ function bindAppEvents({
     });
 
     elements.pickupInputs.forEach((input) => {
-        input.addEventListener("change", modalController.updateDeliveryOptions);
+        input.addEventListener("change", () => {
+            modalController.updateDeliveryOptions();
+            cartRenderer.renderSummary(cartService);
+        });
     });
+
+    if (elements.deliveryKecamatan) {
+        elements.deliveryKecamatan.addEventListener("change", () => {
+            cartRenderer.renderSummary(cartService);
+        });
+    }
+
+    if (elements.deliveryDusun) {
+        elements.deliveryDusun.addEventListener("input", () => {
+            cartRenderer.renderSummary(cartService);
+        });
+    }
+
+    if (elements.deliveryAddress) {
+        elements.deliveryAddress.addEventListener("input", () => {
+            cartRenderer.renderSummary(cartService);
+        });
+    }
+
+    elements.paymentInputs.forEach((input) => {
+        input.addEventListener("change", () => {
+            cartRenderer.updatePaymentInstructions();
+        });
+    });
+
+    if (elements.paymentProof) {
+        elements.paymentProof.addEventListener("change", () => {
+            cartRenderer.handlePaymentProofPreview();
+        });
+    }
 
     elements.anchorLinks.forEach((anchor) => {
         anchor.addEventListener("click", (event) => {

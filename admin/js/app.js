@@ -41,6 +41,17 @@ const selectors = Object.freeze({
     sidebarNav: '[data-js="sidebarNav"]',
     ordersTableBody: '[data-js="ordersTableBody"]',
     emptyOrdersState: '[data-js="emptyOrdersState"]',
+    detailCustomerName: '[data-js="detailCustomerName"]',
+    detailPickupMethod: '[data-js="detailPickupMethod"]',
+    detailPaymentMethod: '[data-js="detailPaymentMethod"]',
+    detailAddress: '[data-js="detailAddress"]',
+    detailPaymentProof: '[data-js="detailPaymentProof"]',
+    detailNoProof: '[data-js="detailNoProof"]',
+    detailOrderStatus: '[data-js="detailOrderStatus"]',
+    detailSubtotal: '[data-js="detailSubtotal"]',
+    detailShippingRow: '[data-js="detailShippingRow"]',
+    detailShippingFee: '[data-js="detailShippingFee"]',
+    detailTotalAmount: '[data-js="detailTotalAmount"]',
 });
 
 function cacheDomElements() {
@@ -70,6 +81,17 @@ function cacheDomElements() {
         sidebarNav: getRequiredElement(selectors.sidebarNav),
         ordersTableBody: getRequiredElement(selectors.ordersTableBody),
         emptyOrdersState: getRequiredElement(selectors.emptyOrdersState),
+        detailCustomerName: getRequiredElement(selectors.detailCustomerName),
+        detailPickupMethod: getRequiredElement(selectors.detailPickupMethod),
+        detailPaymentMethod: getRequiredElement(selectors.detailPaymentMethod),
+        detailAddress: getRequiredElement(selectors.detailAddress),
+        detailPaymentProof: getRequiredElement(selectors.detailPaymentProof),
+        detailNoProof: getRequiredElement(selectors.detailNoProof),
+        detailOrderStatus: getRequiredElement(selectors.detailOrderStatus),
+        detailSubtotal: getRequiredElement(selectors.detailSubtotal),
+        detailShippingRow: getRequiredElement(selectors.detailShippingRow),
+        detailShippingFee: getRequiredElement(selectors.detailShippingFee),
+        detailTotalAmount: getRequiredElement(selectors.detailTotalAmount),
     };
 }
 
@@ -298,23 +320,160 @@ function bindEvents({ elements, store, modalController, notificationService }) {
         }
     });
 
+    function populateOrderMetadata(orderId, orderMeta, items = []) {
+        if (!orderMeta) return;
+
+        // Load supplementary metadata from localStorage (saved at checkout time)
+        // This fills in fields the backend may not persist (pickupMethod, paymentMethod, address)
+        let localMeta = null;
+        try {
+            const raw = localStorage.getItem(`order_meta_${orderId}`);
+            if (raw) localMeta = JSON.parse(raw);
+        } catch (e) { /* ignore */ }
+
+        // Merge: backend data takes precedence, localMeta fills in missing fields
+        const customerName = orderMeta.customerName || orderMeta.customer_name || localMeta?.customerName || "Pembeli Umum";
+        const pickupMethod = orderMeta.pickupMethod || orderMeta.pickup_method || localMeta?.pickupMethod || "takeaway";
+        const paymentMethod = orderMeta.paymentMethod || orderMeta.payment_method || localMeta?.paymentMethod || "qris";
+        const address = orderMeta.address || localMeta?.address || "-";
+        const orderStatus = orderMeta.status || orderMeta.Status || localMeta?.status || "PENDING";
+        const totalAmount = orderMeta.totalAmount || orderMeta.total_amount || localMeta?.totalAmount || 0;
+
+        elements.detailCustomerName.textContent = customerName;
+        elements.detailPickupMethod.textContent = pickupMethod === "delivery" ? "Delivery (Diantar ke Rumah)" : "Take Away (Ambil di Toko)";
+        elements.detailPaymentMethod.textContent = paymentMethod.toUpperCase();
+        elements.detailAddress.textContent = pickupMethod === "delivery" ? address : "Ambil di Toko (Tidak perlu pengiriman)";
+
+        if (elements.detailOrderStatus) {
+            elements.detailOrderStatus.value = orderStatus;
+            elements.detailOrderStatus.dataset.orderId = orderId;
+        }
+
+        // Load proof of payment from localStorage
+        const proofImg = localStorage.getItem(`payment_proof_${orderId}`);
+        if (proofImg) {
+            elements.detailPaymentProof.src = proofImg;
+            elements.detailPaymentProof.style.display = "block";
+            elements.detailNoProof.style.display = "none";
+        } else {
+            elements.detailPaymentProof.src = "";
+            elements.detailPaymentProof.style.display = "none";
+            elements.detailNoProof.style.display = "block";
+        }
+
+        // Rincian Pembayaran calculation
+        const subtotal = items.reduce((sum, item) => sum + ((item.price || 0) * (item.quantity || 0)), 0);
+        const shippingFee = Math.max(0, totalAmount - subtotal);
+
+        // Helper to format currency
+        const formatCurrency = (val) => {
+            return new Intl.NumberFormat(appConfig.locale, {
+                style: "currency",
+                currency: appConfig.inventory.currency,
+                maximumFractionDigits: 0,
+            }).format(val);
+        };
+
+        if (elements.detailSubtotal) elements.detailSubtotal.textContent = formatCurrency(subtotal);
+        if (elements.detailShippingFee) elements.detailShippingFee.textContent = formatCurrency(shippingFee);
+        if (elements.detailShippingRow) {
+            elements.detailShippingRow.style.display = pickupMethod === "delivery" ? "flex" : "none";
+        }
+        if (elements.detailTotalAmount) elements.detailTotalAmount.textContent = formatCurrency(totalAmount || subtotal + shippingFee);
+    }
+
+    if (elements.detailPaymentProof) {
+        elements.detailPaymentProof.addEventListener("click", () => {
+            const src = elements.detailPaymentProof.src;
+            if (src && !src.endsWith("#") && !src.includes("window.location")) {
+                const w = window.open();
+                w.document.write(`<img src="${src}" style="max-width:100%; max-height:100vh; display:block; margin:auto; object-fit:contain;">`);
+                w.document.title = "Bukti Pembayaran";
+                w.document.close();
+            }
+        });
+    }
+
+    async function updateStatus(orderId, newStatus) {
+        try {
+            const response = await fetch(`${appConfig.api.baseUrl}/orders/${orderId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(authService.getToken() ? { Authorization: `Bearer ${authService.getToken()}` } : {}),
+                },
+                body: JSON.stringify({ status: newStatus })
+            });
+
+            if (response.status === 401 || response.status === 403) {
+                authService.handleUnauthorized(response.status);
+                return false;
+            }
+
+            const result = await response.json();
+            if (result.success) {
+                notificationService.success(`Status pesanan #${orderId.substring(0, 8)} diperbarui ke ${newStatus}`);
+                // Refresh list to ensure consistency
+                await loadOrders(elements, store);
+                return true;
+            } else {
+                notificationService.error(result.message || "Gagal memperbarui status.");
+                return false;
+            }
+        } catch (err) {
+            console.error("Error updating order status:", err);
+            notificationService.error("Gagal terhubung ke server untuk memperbarui status.");
+            return false;
+        }
+    }
+
     elements.ordersTableBody.addEventListener("click", async (e) => {
         const btn = e.target.closest('button[data-action="viewItems"]');
         if (!btn) return;
         
         const orderId = btn.dataset.orderId;
+        
+        // Reset metadata fields to default loading state
+        elements.detailCustomerName.textContent = "...";
+        elements.detailPickupMethod.textContent = "...";
+        elements.detailPaymentMethod.textContent = "...";
+        elements.detailAddress.textContent = "...";
+        elements.detailPaymentProof.src = "";
+        elements.detailPaymentProof.style.display = "none";
+        elements.detailNoProof.style.display = "block";
+
+        if (elements.detailSubtotal) elements.detailSubtotal.textContent = "...";
+        if (elements.detailShippingFee) elements.detailShippingFee.textContent = "...";
+        if (elements.detailTotalAmount) elements.detailTotalAmount.textContent = "...";
+
         try {
             const supabase = getSupabase();
-            console.log(`Mengambil item untuk order: ${orderId}`);
+            console.log(`Mengambil item dan metadata untuk order: ${orderId}`);
             
-            // Urutan Pencarian Item Pesanan:
-            // 1. OrderItem (PascalCase) + Product
+            // 1. Fetch metadata
+            let { data: orderMeta, error: metaErr } = await supabase
+                .from('Order')
+                .select('*')
+                .eq('id', orderId)
+                .maybeSingle();
+
+            if (metaErr || !orderMeta) {
+                const { data: orderMetaAlt, error: metaErrAlt } = await supabase
+                    .from('order')
+                    .select('*')
+                    .eq('id', orderId)
+                    .maybeSingle();
+                if (!metaErrAlt && orderMetaAlt) {
+                    orderMeta = orderMetaAlt;
+                }
+            }
+
+            // 2. Fetch items
             let { data: items, error } = await supabase
                 .from('OrderItem')
                 .select('*, product:Product(name)')
                 .eq('orderId', orderId);
 
-            // 2. OrderItems (Plural PascalCase) + Products
             if (error || !items || items.length === 0) {
                 const { data: alt, error: altErr } = await supabase
                     .from('OrderItems')
@@ -323,13 +482,16 @@ function bindEvents({ elements, store, modalController, notificationService }) {
                 if (!altErr && alt?.length > 0) { items = alt; error = null; }
             }
 
-            // 3. order_items (snake_case) + products
             if (error || !items || items.length === 0) {
                 const { data: alt, error: altErr } = await supabase
                     .from('order_items')
                     .select('*, product:products(name)')
                     .eq('order_id', orderId);
                 if (!altErr && alt?.length > 0) { items = alt; error = null; }
+            }
+
+            if (orderMeta) {
+                populateOrderMetadata(orderId, orderMeta, items || []);
             }
 
             renderOrderItems(elements.orderItemsTableBody, items || []);
@@ -352,6 +514,7 @@ function bindEvents({ elements, store, modalController, notificationService }) {
 
                 const result = await response.json();
                 if (result.success) {
+                    populateOrderMetadata(orderId, result.data, result.data.items || []);
                     renderOrderItems(elements.orderItemsTableBody, result.data.items || []);
                     elements.orderModal.hidden = false;
                     elements.modalOverlay.hidden = false;
@@ -368,35 +531,18 @@ function bindEvents({ elements, store, modalController, notificationService }) {
 
         const { orderId } = select.dataset;
         const newStatus = select.value;
-
-        try {
-            const response = await fetch(`${appConfig.api.baseUrl}/orders/${orderId}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...(authService.getToken() ? { Authorization: `Bearer ${authService.getToken()}` } : {}),
-                },
-                body: JSON.stringify({ status: newStatus })
-            });
-
-            if (response.status === 401 || response.status === 403) {
-                authService.handleUnauthorized(response.status);
-                return;
-            }
-
-            const result = await response.json();
-            if (result.success) {
-                notificationService.success(`Status pesanan #${orderId.substring(0, 8)} diperbarui ke ${newStatus}`);
-                // Refresh list to ensure consistency
-                await loadOrders(elements, store);
-            } else {
-                notificationService.error(result.message || "Gagal memperbarui status.");
-            }
-        } catch (err) {
-            console.error("Error updating order status:", err);
-            notificationService.error("Gagal terhubung ke server untuk memperbarui status.");
-        }
+        await updateStatus(orderId, newStatus);
     });
+
+    if (elements.detailOrderStatus) {
+        elements.detailOrderStatus.addEventListener("change", async () => {
+            const orderId = elements.detailOrderStatus.dataset.orderId;
+            const newStatus = elements.detailOrderStatus.value;
+            if (orderId) {
+                await updateStatus(orderId, newStatus);
+            }
+        });
+    }
 
     elements.logoutBtn.addEventListener("click", () => {
         authService.logout();

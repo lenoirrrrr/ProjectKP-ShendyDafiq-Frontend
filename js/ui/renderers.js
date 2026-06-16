@@ -184,13 +184,137 @@ export function createCartRenderer({ elements }) {
         });
     }
 
-    function renderSummary(cartService) {
-        renderCartItems(cartService.getItems());
-        elements.totalPrice.textContent = formatCurrency(cartService.getTotal());
-        updateCartBadge(cartService.getItemCount());
+    function updateCheckoutPricing(cartService) {
+        const subtotal = cartService.getTotal();
+        
+        let pickupMethod = "takeaway";
+        if (elements.pickupInputs) {
+            elements.pickupInputs.forEach(input => {
+                if (input.checked) {
+                    pickupMethod = input.value;
+                }
+            });
+        }
+
+        const isDelivery = pickupMethod === "delivery";
+        
+        if (elements.cartSubtotal) {
+            elements.cartSubtotal.textContent = formatCurrency(subtotal);
+        }
+
+        let shippingFeeValue = 0;
+        let isBelowMinDelivery = false;
+        let hasKecamatan = false;
+        let hasDusun = false;
+        let hasAddress = false;
+
+        if (isDelivery) {
+            isBelowMinDelivery = subtotal < 50000;
+            
+            const selectedKecOption = elements.deliveryKecamatan?.options[elements.deliveryKecamatan.selectedIndex];
+            if (selectedKecOption && selectedKecOption.value !== "") {
+                hasKecamatan = true;
+                const baseFee = parseInt(selectedKecOption.dataset.fee || "0", 10);
+                shippingFeeValue = subtotal >= 1000000 ? 0 : baseFee;
+            }
+
+            if (elements.deliveryDusun && elements.deliveryDusun.value.trim() !== "") {
+                hasDusun = true;
+            }
+
+            if (elements.deliveryAddress && elements.deliveryAddress.value.trim() !== "") {
+                hasAddress = true;
+            }
+        }
+
+        if (elements.shippingRow) {
+            elements.shippingRow.hidden = !isDelivery;
+        }
+
+        if (elements.shippingFee) {
+            if (isDelivery) {
+                if (!hasKecamatan) {
+                    elements.shippingFee.textContent = "Pilih Kecamatan...";
+                    elements.shippingFee.style.color = "var(--color-muted)";
+                    elements.shippingFee.style.fontWeight = "";
+                } else if (subtotal >= 1000000) {
+                    elements.shippingFee.textContent = "Gratis Ongkir";
+                    elements.shippingFee.style.color = "var(--color-primary)";
+                    elements.shippingFee.style.fontWeight = "bold";
+                } else {
+                    elements.shippingFee.textContent = formatCurrency(shippingFeeValue);
+                    elements.shippingFee.style.color = "";
+                    elements.shippingFee.style.fontWeight = "";
+                }
+            }
+        }
+
+        if (elements.minDeliveryNotice) {
+            elements.minDeliveryNotice.hidden = !(isDelivery && isBelowMinDelivery);
+        }
+
+        if (elements.submitOrderBtn) {
+            elements.submitOrderBtn.disabled = false;
+            elements.submitOrderBtn.classList.remove("disabled");
+            elements.submitOrderBtn.title = "";
+        }
+
+        const finalTotal = subtotal + shippingFeeValue;
+        if (elements.totalPrice) {
+            elements.totalPrice.textContent = formatCurrency(finalTotal);
+        }
     }
 
-    return { updateCartBadge, renderCartItems, renderSummary };
+    function updatePaymentInstructions() {
+        let paymentMethod = "qris";
+        if (elements.paymentInputs) {
+            elements.paymentInputs.forEach(input => {
+                if (input.checked) {
+                    paymentMethod = input.value;
+                }
+            });
+        }
+
+        const isQris = paymentMethod === "qris";
+        const isTransfer = paymentMethod === "transfer";
+
+        if (elements.qrisInstruction) {
+            elements.qrisInstruction.style.display = isQris ? "block" : "none";
+        }
+        if (elements.transferInstruction) {
+            elements.transferInstruction.style.display = isTransfer ? "block" : "none";
+        }
+    }
+
+    function handlePaymentProofPreview() {
+        const fileInput = elements.paymentProof;
+        const previewContainer = elements.paymentProofPreviewContainer;
+        const previewImg = elements.paymentProofPreview;
+
+        if (!fileInput || !previewContainer || !previewImg) return;
+
+        const file = fileInput.files?.[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                previewImg.src = e.target.result;
+                previewContainer.style.display = "block";
+            };
+            reader.readAsDataURL(file);
+        } else {
+            previewImg.src = "";
+            previewContainer.style.display = "none";
+        }
+    }
+
+    function renderSummary(cartService) {
+        renderCartItems(cartService.getItems());
+        updateCartBadge(cartService.getItemCount());
+        updateCheckoutPricing(cartService);
+        updatePaymentInstructions();
+    }
+
+    return { updateCartBadge, renderCartItems, renderSummary, updatePaymentInstructions, handlePaymentProofPreview };
 }
 
 export function createUserOrderRenderer({ elements }) {

@@ -153,20 +153,78 @@
                 </div>
                 <button class="icon-btn" type="button" data-js="closeOrderModalBtn">&times;</button>
             </header>
-            
-            <div class="table-responsive" style="padding: 1rem;">
-                <table class="product-table">
-                    <thead>
-                        <tr>
-                            <th>Produk</th>
-                            <th>Harga</th>
-                            <th>Qty</th>
-                            <th>Subtotal</th>
-                            <th style="width: 50px;">Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody data-js="orderItemsTableBody"></tbody>
-                </table>
+
+            <!-- Scrollable content area -->
+            <div style="flex: 1; overflow-y: auto;">
+                <!-- Detail Informasi Pesanan -->
+                <div data-js="orderDetailMetadata" style="padding: 1.2rem; border-bottom: 1px solid var(--color-hairline); display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <div style="display: flex; flex-direction: column; gap: 10px;">
+                        <div>
+                            <span style="font-size: 0.8rem; color: #86868b; display: block; margin-bottom: 2px;">Nama Pelanggan</span>
+                            <strong id="detailCustomerName" data-js="detailCustomerName" style="color: #1d1d1f; font-size: 15px;">-</strong>
+                        </div>
+                        <div>
+                            <span style="font-size: 0.8rem; color: #86868b; display: block; margin-bottom: 2px;">Metode Pengambilan</span>
+                            <strong id="detailPickupMethod" data-js="detailPickupMethod" style="color: #1d1d1f; font-size: 14px;">-</strong>
+                        </div>
+                        <div>
+                            <span style="font-size: 0.8rem; color: #86868b; display: block; margin-bottom: 2px;">Metode Pembayaran</span>
+                            <strong id="detailPaymentMethod" data-js="detailPaymentMethod" style="color: #1d1d1f; font-size: 14px;">-</strong>
+                        </div>
+                        <div>
+                            <span style="font-size: 0.8rem; color: #86868b; display: block; margin-bottom: 2px;">Alamat Pengiriman</span>
+                            <span id="detailAddress" data-js="detailAddress" style="color: #1d1d1f; font-size: 14px; display: block; font-weight: 500;">-</span>
+                        </div>
+                        <div>
+                            <span style="font-size: 0.8rem; color: #86868b; display: block; margin-bottom: 2px;">Status Pesanan</span>
+                            <select id="detailOrderStatus" data-js="detailOrderStatus" style="padding: 6px 12px; border-radius: 6px; border: 1px solid var(--color-hairline); font-size: 13px; background: #fff; font-weight: 600; min-width: 140px;">
+                                <option value="PENDING">PENDING</option>
+                                <option value="PROCESSING">PROCESSING</option>
+                                <option value="COMPLETED">COMPLETED</option>
+                                <option value="CANCELLED">CANCELLED</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 8px; align-items: center; justify-content: center; border-left: 1px solid var(--color-hairline); padding-left: 20px;">
+                        <span style="font-size: 0.8rem; color: #86868b; margin-bottom: 4px; font-weight: 600;">Bukti Pembayaran</span>
+                        <div id="detailProofContainer" style="width: 100%; max-height: 150px; overflow: hidden; display: flex; align-items: center; justify-content: center; border: 1px dashed var(--color-hairline); border-radius: 8px; background: #fafafa; padding: 10px; min-height: 120px;">
+                            <img id="detailPaymentProof" data-js="detailPaymentProof" src="" alt="Bukti Transfer (Klik untuk perbesar)" title="Klik untuk perbesar" style="max-width: 100%; max-height: 120px; object-fit: contain; cursor: pointer; display: none;">
+                            <span id="detailNoProof" data-js="detailNoProof" style="font-size: 0.82rem; color: #86868b; text-align: center;">Tidak ada bukti di-upload</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="table-responsive" style="padding: 1rem;">
+                    <table class="product-table">
+                        <thead>
+                            <tr>
+                                <th>Produk</th>
+                                <th>Harga</th>
+                                <th>Qty</th>
+                                <th>Subtotal</th>
+                                <th style="width: 50px;">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody data-js="orderItemsTableBody"></tbody>
+                    </table>
+                </div>
+
+                <!-- Rincian Pembayaran Breakdown -->
+                <div data-js="orderPaymentSummary" style="padding: 1.2rem; border-top: 1px solid var(--color-hairline); background: #fafafa; display: flex; flex-direction: column; gap: 8px;">
+                    <h4 style="margin: 0 0 6px 0; color: #1d1d1f; font-size: 14px; font-weight: 600;">Rincian Pembayaran</h4>
+                    <div style="display: flex; justify-content: space-between; font-size: 0.9rem; color: #86868b;">
+                        <span>Total Harga Produk</span>
+                        <span id="detailSubtotal" data-js="detailSubtotal" style="font-weight: 500; color: #1d1d1f;">Rp 0</span>
+                    </div>
+                    <div id="detailShippingRow" data-js="detailShippingRow" style="display: flex; justify-content: space-between; font-size: 0.9rem; color: #86868b;">
+                        <span>Ongkos Kirim</span>
+                        <span id="detailShippingFee" data-js="detailShippingFee" style="font-weight: 500; color: #1d1d1f;">Rp 0</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 1rem; color: #1d1d1f; font-weight: 700; margin-top: 4px; padding-top: 8px; border-top: 1px dashed #e5e5e7;">
+                        <span>Total Pembayaran</span>
+                        <span id="detailTotalAmount" data-js="detailTotalAmount">Rp 0</span>
+                    </div>
+                </div>
             </div>
 
             <footer class="modal-footer">

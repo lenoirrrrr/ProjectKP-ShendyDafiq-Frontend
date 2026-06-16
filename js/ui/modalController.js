@@ -25,6 +25,16 @@ export function createModalController({ elements }) {
         elements.checkoutModal.hidden = true;
         elements.userOrderModal.hidden = true;
         elements.modalOverlay.hidden = true;
+
+        if (elements.paymentProof) {
+            elements.paymentProof.value = "";
+        }
+        if (elements.paymentProofPreviewContainer) {
+            elements.paymentProofPreviewContainer.style.display = "none";
+        }
+        if (elements.paymentProofPreview) {
+            elements.paymentProofPreview.src = "";
+        }
     }
 
     function openUserOrders() {
@@ -42,6 +52,8 @@ export function createModalController({ elements }) {
         elements.deliveryAddressSection.hidden = !isDelivery;
 
         if (!isDelivery) {
+            elements.deliveryKecamatan.value = "";
+            elements.deliveryDusun.value = "";
             elements.deliveryAddress.value = "";
         }
     }
@@ -51,6 +63,8 @@ export function createModalController({ elements }) {
             customerName: elements.customerName.value,
             pickupMethod: getCheckedRadioValue(elements.pickupInputs, "takeaway"),
             paymentMethod: getCheckedRadioValue(elements.paymentInputs, "qris"),
+            kecamatan: elements.deliveryKecamatan.value,
+            dusun: elements.deliveryDusun.value,
             address: elements.deliveryAddress.value,
         };
     }

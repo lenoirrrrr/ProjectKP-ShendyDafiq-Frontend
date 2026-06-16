@@ -13,11 +13,13 @@ const result = {
 };
 
 export function createOrderService({ cartService }) {
-    function createCheckoutDraft({ customerName, pickupMethod, paymentMethod, address }) {
+    function createCheckoutDraft({ customerName, pickupMethod, paymentMethod, kecamatan, dusun, address }) {
         const items = cartService.getItems();
         const safeCustomerName = sanitizeText(customerName, { maxLength: 100 });
         const safePickupMethod = sanitizeText(pickupMethod, { maxLength: 24 });
         const safePaymentMethod = sanitizeText(paymentMethod, { maxLength: 24 });
+        const safeKecamatan = sanitizeText(kecamatan, { maxLength: 100 });
+        const safeDusun = sanitizeText(dusun, { maxLength: 100 });
         const safeAddress = sanitizeText(address, { maxLength: 500, allowLineBreaks: true });
 
         if (items.length === 0) {
@@ -69,25 +71,106 @@ export function createOrderService({ cartService }) {
             );
         }
 
-        if (safePickupMethod === "delivery" && safeAddress.length === 0) {
-            return result.fail(
-                "Alamat pengiriman perlu diisi.",
-                new AppError({
-                    category: errorCategory.validation,
-                    code: "MISSING_DELIVERY_ADDRESS",
-                    message: "Alamat pengiriman perlu diisi.",
-                    severity: "warn",
-                })
-            );
+        if (safePickupMethod === "delivery") {
+            if (!safeKecamatan) {
+                return result.fail(
+                    "Kecamatan wajib dipilih.",
+                    new AppError({
+                        category: errorCategory.validation,
+                        code: "MISSING_KECAMATAN",
+                        message: "Kecamatan wajib dipilih.",
+                        severity: "warn",
+                    })
+                );
+            }
+            if (!safeDusun) {
+                return result.fail(
+                    "Dusun / Desa wajib diisi.",
+                    new AppError({
+                        category: errorCategory.validation,
+                        code: "MISSING_DUSUN",
+                        message: "Dusun / Desa wajib diisi.",
+                        severity: "warn",
+                    })
+                );
+            }
+            if (safeAddress.length === 0) {
+                return result.fail(
+                    "Alamat lengkap detail perlu diisi.",
+                    new AppError({
+                        category: errorCategory.validation,
+                        code: "MISSING_DELIVERY_ADDRESS",
+                        message: "Alamat lengkap detail perlu diisi.",
+                        severity: "warn",
+                    })
+                );
+            }
         }
+
+        const subtotal = cartService.getTotal();
+        let shippingFee = 0;
+
+        const kecamatanFees = {
+            "Bubutan": 55000,
+            "Genteng": 50000,
+            "Simokerto": 65000,
+            "Tegalsari": 45000,
+            "Gubeng": 45000,
+            "Gunung Anyar": 50000,
+            "Mulyorejo": 65000,
+            "Rungkut": 45000,
+            "Sukolilo": 55000,
+            "Tambaksari": 55000,
+            "Tenggilis Mejoyo": 40000,
+            "Asemrowo": 75000,
+            "Benowo": 125000,
+            "Dukuh Pakis": 35000,
+            "Karang Pilang": 20000,
+            "Lakarsantri": 90000,
+            "Sambikerep": 95000,
+            "Tandes": 70000,
+            "Bulak": 90000,
+            "Kenjeran": 80000,
+            "Krembangan": 75000,
+            "Pabean Cantian": 80000,
+            "Semampir": 85000,
+            "Gayungan": 10000,
+            "Jambangan": 0,
+            "Pakal": 110000,
+            "Sawahan": 35000,
+            "Sukomanunggal": 50000,
+            "Wiyung": 30000,
+            "Wonocolo": 15000,
+            "Wonokromo": 25000
+        };
+
+        if (safePickupMethod === "delivery") {
+            if (subtotal < 50000) {
+                return result.fail(
+                    "Minimal belanja untuk pengiriman adalah Rp 50.000.",
+                    new AppError({
+                        category: errorCategory.validation,
+                        code: "MINIMUM_ORDER_NOT_MET",
+                        message: "Minimal belanja untuk pengiriman adalah Rp 50.000.",
+                        severity: "warn",
+                    })
+                );
+            }
+            const baseFee = kecamatanFees[safeKecamatan] || 0;
+            shippingFee = subtotal >= 1000000 ? 0 : baseFee;
+        }
+
+        const formattedAddress = safePickupMethod === "delivery" 
+            ? `Kecamatan ${safeKecamatan}, Dusun ${safeDusun}, ${safeAddress}`
+            : "";
 
         return result.ok({
             items,
             customerName: safeCustomerName,
             pickupMethod: safePickupMethod,
             paymentMethod: safePaymentMethod,
-            address: safePickupMethod === "delivery" ? safeAddress : "",
-            totalAmount: cartService.getTotal(),
+            address: formattedAddress,
+            totalAmount: subtotal + shippingFee,
             currency: appConfig.cart.currency,
             createdAt: new Date().toISOString(),
         });
@@ -130,7 +213,11 @@ export function createOrderService({ cartService }) {
             // Fallback: If server is offline, simulate a successful order locally
             if (error?.code === "API_NETWORK_ERROR" || error?.cause?.code === "API_NETWORK_ERROR") {
                 console.warn("[ORDER:FALLBACK] Server tidak merespons, pesanan disimulasikan secara lokal.");
-                return result.ok(draftResult.data);
+                const simulatedOrder = {
+                    ...draftResult.data,
+                    id: `local_${Date.now()}`
+                };
+                return result.ok(simulatedOrder);
             }
 
             return result.fail(
